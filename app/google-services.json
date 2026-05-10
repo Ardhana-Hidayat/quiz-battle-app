@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "325541160829",
+    "project_id": "quiz-battle-8baf1",
+    "storage_bucket": "quiz-battle-8baf1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:325541160829:android:7fe7f8550fa1cd1bbb4e14",
+        "android_client_info": {
+          "package_name": "id.ac.pnm.quizbattleapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "325541160829-vr7bpb3n8r86m3cdo0pj38e6mk4ole1q.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCHJuQVSEux8wADgWW8Nj5U_TV3prceoHU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "325541160829-vr7bpb3n8r86m3cdo0pj38e6mk4ole1q.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
