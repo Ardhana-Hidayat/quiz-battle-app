@@ -2,64 +2,64 @@ package id.ac.pnm.quizbattleapp.feature.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import id.ac.pnm.quizbattleapp.data.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import id.ac.pnm.quizbattleapp.domain.model.User
-import id.ac.pnm.quizbattleapp.domain.usecase.LoginUseCase
-import id.ac.pnm.quizbattleapp.domain.usecase.RegisterUseCase
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlinx.coroutines.flow.map
-import id.ac.pnm.quizbattleapp.core.util.Result
-import id.ac.pnm.quizbattleapp.data.repository.AuthRepository
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.stateIn
 
-sealed class AuthUiState {
-    object Idle    : AuthUiState()
-    object Loading : AuthUiState()
-    data class Success(val user: User)    : AuthUiState()
-    data class Error(val message: String) : AuthUiState()
+sealed class AuthState {
+    object Idle    : AuthState()
+    object Loading : AuthState()
+    object Success : AuthState()
+    data class Error(val message: String) : AuthState()
 }
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val loginUseCase: LoginUseCase,
-    private val registerUseCase: RegisterUseCase,
-    private val authRepository: AuthRepository
+    private val repo: AuthRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow<AuthUiState>(AuthUiState.Idle)
-    val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
+    private val _state = MutableStateFlow<AuthState>(AuthState.Idle)
+    val state: StateFlow<AuthState> = _state.asStateFlow()
 
-    val isLoggedIn: StateFlow<Boolean> = authRepository
-        .observeAuthState()
+    val isLoggedIn: StateFlow<Boolean> = repo.observeAuthState()
         .map { it != null }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), repo.currentUser != null)
 
     fun login(email: String, password: String) {
+        if (!validate(email, password)) return
         viewModelScope.launch {
-            _uiState.value = AuthUiState.Loading
-            _uiState.value = when (val result = loginUseCase(email, password)) {
-                is Result.Success -> AuthUiState.Success(result.data)
-                is Result.Error   -> AuthUiState.Error(result.message)
-                else              -> AuthUiState.Idle
-            }
+            _state.value = AuthState.Loading
+            repo.login(email, password).fold(
+                onSuccess = { _state.value = AuthState.Success },
+                onFailure = { _state.value = AuthState.Error(it.message ?: "Login gagal") }
+            )
         }
     }
 
     fun register(email: String, password: String, name: String) {
+        if (name.isBlank()) { _state.value = AuthState.Error("Nama tidak boleh kosong"); return }
+        if (!validate(email, password)) return
         viewModelScope.launch {
-            _uiState.value = AuthUiState.Loading
-            _uiState.value = when (val result = registerUseCase(email, password, name)) {
-                is Result.Success -> AuthUiState.Success(result.data)
-                is Result.Error   -> AuthUiState.Error(result.message)
-                else              -> AuthUiState.Idle
-            }
+            _state.value = AuthState.Loading
+            repo.register(email, password, name).fold(
+                onSuccess = { _state.value = AuthState.Success },
+                onFailure = { _state.value = AuthState.Error(it.message ?: "Register gagal") }
+            )
         }
     }
 
-    fun resetState() { _uiState.value = AuthUiState.Idle }
+    fun logout() = repo.logout()
+
+    fun resetState() { _state.value = AuthState.Idle }
+
+    // Validasi ringan langsung di ViewModel, tidak perlu UseCase terpisah
+    private fun validate(email: String, password: String): Boolean {
+        return when {
+            email.isBlank()    -> { _state.value = AuthState.Error("Email tidak boleh kosong"); false }
+            password.length < 6 -> { _state.value = AuthState.Error("Password minimal 6 karakter"); false }
+            else -> true
+        }
+    }
 }

@@ -7,8 +7,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExitToApp
-//import androidx.compose.material.icons.filled.Leaderboard
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Leaderboard
+import androidx.compose.material.icons.filled.OnlinePrediction
+import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,9 +19,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import id.ac.pnm.quizbattleapp.domain.model.GameMode
+import id.ac.pnm.quizbattleapp.data.model.GameMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,13 +58,13 @@ fun HomeScreen(
             TopAppBar(
                 title = { Text("Quiz Battle", fontWeight = FontWeight.Bold) },
                 actions = {
-                    // Leaderboard icon
-//                    IconButton(onClick = { /* TODO: navigate to leaderboard */ }) {
-//                        Icon(Icons.Default.Leaderboard, contentDescription = "Leaderboard")
-//                    }
+                    // Leaderboard icon (Sudah diaktifkan kembali)
+                    IconButton(onClick = { /* TODO: navigate to leaderboard */ }) {
+                        Icon(Icons.Default.Leaderboard, contentDescription = "Leaderboard")
+                    }
                     // Logout icon
                     IconButton(onClick = { showLogoutDialog = true }) {
-                        Icon(Icons.Default.ExitToApp, contentDescription = "Logout")
+                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -87,7 +90,7 @@ fun HomeScreen(
             contentPadding = PaddingValues(vertical = 20.dp)
         ) {
 
-            // ── Profile Card ────────────────────────────────────────────────
+            // Profile Card Section
             item {
                 ProfileCard(
                     displayName = uiState.user?.displayName ?: "Pemain",
@@ -95,7 +98,7 @@ fun HomeScreen(
                 )
             }
 
-            // ── Section label ───────────────────────────────────────────────
+            // Section Label
             item {
                 Text(
                     text  = "Pilih Mode Permainan",
@@ -104,7 +107,7 @@ fun HomeScreen(
                 )
             }
 
-            // ── Game Mode Cards ─────────────────────────────────────────────
+            // Game Mode Cards List
             items(uiState.gameModes) { mode ->
                 GameModeCard(
                     mode    = mode,
@@ -120,7 +123,6 @@ fun HomeScreen(
     }
 }
 
-// ── Profile Card ────────────────────────────────────────────────────────────
 @Composable
 private fun ProfileCard(displayName: String, email: String) {
     Card(
@@ -168,7 +170,6 @@ private fun ProfileCard(displayName: String, email: String) {
     }
 }
 
-// ── Game Mode Card ───────────────────────────────────────────────────────────
 @Composable
 private fun GameModeCard(mode: GameMode, onClick: () -> Unit) {
     val (containerColor, contentColor) = when (mode) {
@@ -176,6 +177,12 @@ private fun GameModeCard(mode: GameMode, onClick: () -> Unit) {
                 MaterialTheme.colorScheme.onSecondaryContainer
         GameMode.SOLO_TRAINING -> MaterialTheme.colorScheme.tertiaryContainer to
                 MaterialTheme.colorScheme.onTertiaryContainer
+    }
+
+    // Pemilihan icon yang sesuai berdasarkan enum GameMode
+    val vectorIcon = when (mode) {
+        GameMode.ONLINE_BATTLE -> Icons.Default.OnlinePrediction
+        GameMode.SOLO_TRAINING -> Icons.Default.Psychology
     }
 
     Card(
@@ -192,7 +199,7 @@ private fun GameModeCard(mode: GameMode, onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Icon dalam lingkaran
+            // Icon Vector beralih dari teks ke Icon resmi Material3
             Box(
                 modifier = Modifier
                     .size(52.dp)
@@ -200,7 +207,12 @@ private fun GameModeCard(mode: GameMode, onClick: () -> Unit) {
                     .background(contentColor.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = mode.icon, style = MaterialTheme.typography.headlineSmall)
+                Icon(
+                    imageVector = vectorIcon,
+                    contentDescription = mode.label,
+                    tint = contentColor,
+                    modifier = Modifier.size(28.dp)
+                )
             }
 
             Column(
@@ -220,8 +232,12 @@ private fun GameModeCard(mode: GameMode, onClick: () -> Unit) {
                 )
             }
 
-            // Arrow indicator
-            Text(text = "›", style = MaterialTheme.typography.headlineMedium, color = contentColor)
+            // Mengganti teks panah aneh dengan komponen Icon Arrow asli
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = "Buka Mode",
+                tint = contentColor
+            )
         }
     }
 }
