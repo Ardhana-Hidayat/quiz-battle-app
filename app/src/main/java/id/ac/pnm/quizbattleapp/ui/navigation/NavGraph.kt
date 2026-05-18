@@ -10,6 +10,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import id.ac.pnm.quizbattleapp.feature.auth.AuthScreen
 import id.ac.pnm.quizbattleapp.feature.auth.AuthViewModel
+import id.ac.pnm.quizbattleapp.feature.game.SoloScreen
 import id.ac.pnm.quizbattleapp.feature.home.HomeScreen
 
 @Composable
@@ -38,12 +39,18 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
         composable(Routes.Home.route) {
             HomeScreen(
                 onOnlineBattle = { navController.navigate(Routes.Lobby.route) },
-                onSoloTraining = { navController.navigate(Routes.Game.route) },
+                onSoloTraining = { navController.navigate(Routes.Solo.route) },
                 onLogout = {
                     navController.navigate(Routes.Auth.route) {
                         popUpTo(Routes.Home.route) { inclusive = true }
                     }
                 }
+            )
+        }
+
+        composable(Routes.Solo.route) {
+            SoloScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }

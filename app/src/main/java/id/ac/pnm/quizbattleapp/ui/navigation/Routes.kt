@@ -7,4 +7,5 @@ sealed class Routes(val route: String) {
     object Lobby  : Routes("lobby")
     object Game   : Routes("game")
     object Result : Routes("result")
+    object Solo   : Routes("solo")
 }

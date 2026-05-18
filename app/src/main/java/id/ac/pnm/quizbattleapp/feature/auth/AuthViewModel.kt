@@ -54,7 +54,6 @@ class AuthViewModel @Inject constructor(
 
     fun resetState() { _state.value = AuthState.Idle }
 
-    // Validasi ringan langsung di ViewModel, tidak perlu UseCase terpisah
     private fun validate(email: String, password: String): Boolean {
         return when {
             email.isBlank()    -> { _state.value = AuthState.Error("Email tidak boleh kosong"); false }
