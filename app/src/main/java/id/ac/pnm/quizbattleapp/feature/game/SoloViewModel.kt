@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import id.ac.pnm.quizbattleapp.data.model.GameResult
 import id.ac.pnm.quizbattleapp.data.model.Question
 import id.ac.pnm.quizbattleapp.data.repository.QuizRepository
+import id.ac.pnm.quizbattleapp.data.repository.HistoryRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,7 +25,8 @@ data class SoloUiState(
 
 @HiltViewModel
 class SoloViewModel @Inject constructor(
-    private val quizRepository: QuizRepository
+    private val quizRepository: QuizRepository,
+    private val historyRepository: HistoryRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SoloUiState())
@@ -74,6 +76,7 @@ class SoloViewModel @Inject constructor(
                 isFinished     = true,
                 result         = result
             )
+            viewModelScope.launch { historyRepository.saveResult(result) }
         }
     }
 
