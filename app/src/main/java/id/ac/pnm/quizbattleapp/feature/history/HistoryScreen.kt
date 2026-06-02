@@ -1,4 +1,4 @@
-package id.ac.pnm.quizbattleapp.feature.HistoryScreenDanLeaderboardScreen
+package id.ac.pnm.quizbattleapp.feature.history
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*

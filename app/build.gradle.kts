@@ -61,6 +61,7 @@ dependencies {
     implementation(libs.hilt.navigation.compose)
 
     // Firebase
+    implementation(libs.firebase.database)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.play.services.auth)
