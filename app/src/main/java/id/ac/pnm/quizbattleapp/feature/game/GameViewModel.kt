@@ -11,6 +11,7 @@ import id.ac.pnm.quizbattleapp.data.model.Question
 import id.ac.pnm.quizbattleapp.data.model.RoomStatus
 import id.ac.pnm.quizbattleapp.data.repository.QuizRepository
 import id.ac.pnm.quizbattleapp.data.repository.RoomRepository
+import id.ac.pnm.quizbattleapp.data.repository.HistoryRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -34,6 +35,7 @@ data class GameUiState(
 class GameViewModel @Inject constructor(
     private val quizRepository: QuizRepository,
     private val roomRepository: RoomRepository,
+    private val historyRepository: HistoryRepository,
     private val auth: FirebaseAuth,
     private val db: FirebaseDatabase,
     savedStateHandle: SavedStateHandle
@@ -158,6 +160,7 @@ class GameViewModel @Inject constructor(
 
         // Tandai room selesai
         viewModelScope.launch {
+            historyRepository.saveResult(result)
             roomRepository.updateStatus(roomId, RoomStatus.FINISHED)
         }
     }
