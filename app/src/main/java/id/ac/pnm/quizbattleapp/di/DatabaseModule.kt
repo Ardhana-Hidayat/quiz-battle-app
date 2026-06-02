@@ -8,6 +8,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import id.ac.pnm.quizbattleapp.data.local.AppDatabase
+import id.ac.pnm.quizbattleapp.data.local.GameHistoryDao
 import id.ac.pnm.quizbattleapp.data.local.QuestionDao
 import javax.inject.Singleton
 
@@ -22,7 +23,9 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "quiz_battle_db"
-        ).build()
+        )
+            .fallbackToDestructiveMigration()
+            .build()
     }
 
     @Provides
@@ -30,4 +33,7 @@ object DatabaseModule {
     fun provideQuestionDao(appDatabase: AppDatabase): QuestionDao {
         return appDatabase.questionDao()
     }
+    @Provides
+    @Singleton
+    fun provideGameHistoryDao(db: AppDatabase): GameHistoryDao = db.gameHistoryDao()
 }
