@@ -19,7 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import id.ac.pnm.quizbattleapp.data.model.GameMode
 
@@ -28,6 +28,7 @@ import id.ac.pnm.quizbattleapp.data.model.GameMode
 fun HomeScreen(
     onOnlineBattle: () -> Unit,
     onSoloTraining: () -> Unit,
+    onLeaderboard: () -> Unit,
     onLogout: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
@@ -59,7 +60,7 @@ fun HomeScreen(
                 title = { Text("Quiz Battle", fontWeight = FontWeight.Bold) },
                 actions = {
                     // Leaderboard icon (Sudah diaktifkan kembali)
-                    IconButton(onClick = { /* TODO: navigate to leaderboard */ }) {
+                    IconButton(onClick = { onLeaderboard() }) {
                         Icon(Icons.Default.Leaderboard, contentDescription = "Leaderboard")
                     }
                     // Logout icon

@@ -43,6 +43,31 @@ class QuizRepository @Inject constructor(
                 text = "Warna bendera negara Indonesia adalah?",
                 options = listOf("Merah Putih", "Putih Merah", "Merah Biru", "Biru Merah"),
                 correctAnswerIndex = 0
+            ),
+            Question(
+                text = "Planet terbesar di tata surya adalah?",
+                options = listOf("Saturnus", "Mars", "Jupiter", "Uranus"),
+                correctAnswerIndex = 2
+            ),
+            Question(
+                text = "Bahasa pemrograman apa yang digunakan untuk membuat aplikasi Android secara resmi?",
+                options = listOf("Swift", "Kotlin", "Python", "Ruby"),
+                correctAnswerIndex = 1
+            ),
+            Question(
+                text = "Berapa jumlah provinsi di Indonesia saat ini?",
+                options = listOf("34", "36", "37", "38"),
+                correctAnswerIndex = 3
+            ),
+            Question(
+                text = "Siapakah presiden pertama Republik Indonesia?",
+                options = listOf("Mohammad Hatta", "Soeharto", "Soekarno", "Habibie"),
+                correctAnswerIndex = 2
+            ),
+            Question(
+                text = "Satuan dasar kecepatan dalam sistem SI adalah?",
+                options = listOf("km/jam", "m/s", "mil/jam", "knot"),
+                correctAnswerIndex = 1
             )
         )
         questionDao.insertAll(dummyQuestions)
