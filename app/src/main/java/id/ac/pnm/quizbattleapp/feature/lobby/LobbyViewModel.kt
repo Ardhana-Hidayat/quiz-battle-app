@@ -65,17 +65,60 @@ class LobbyViewModel @Inject constructor(
         }
     }
 
-    // ── Observe room real-time setelah create / join ───────────────────────
     private fun listenToRoom(roomId: String) {
         viewModelScope.launch {
             roomRepo.observeRoom(roomId).collect { room ->
-                room ?: return@collect
-                _state.value = when {
-                    room.status == RoomStatus.PLAYING -> LobbyUiState.NavigateToGame(roomId)
-                    room.bothReady                    -> LobbyUiState.Ready(room)
-                    else                              -> LobbyUiState.Waiting(room)
+                if (room == null) {
+                    _state.value = LobbyUiState.Error("Room telah dibatalkan atau ditutup.")
+                    return@collect
+                }
+
+                _state.value = when (room.status) {
+                    RoomStatus.PLAYING  -> LobbyUiState.NavigateToGame(roomId)
+                    RoomStatus.READY    -> LobbyUiState.Ready(room)    // ← andalkan status, bukan bothReady
+                    else                -> LobbyUiState.Waiting(room)
                 }
             }
+        }
+    }
+
+    fun cancelRoom() {
+        val currentRoom = when (val s = _state.value) {
+            is LobbyUiState.Waiting -> s.room
+            is LobbyUiState.Ready -> s.room
+            else -> null
+        }
+        
+        viewModelScope.launch {
+            currentRoom?.let { room ->
+                if (room.player1.uid == currentUid) {
+                    // Jika kita pembuat room, hapus room dari Firebase
+                    roomRepo.deleteRoom(room.roomId)
+                }
+            }
+            _state.value = LobbyUiState.Idle
+        }
+    }
+
+    fun backToList() {
+        // Hanya reset state, TIDAK hapus room
+        _state.value = LobbyUiState.Idle
+    }
+
+    fun cancelAndDeleteRoom() {
+        // Hapus room DAN reset state
+        val currentRoom = when (val s = _state.value) {
+            is LobbyUiState.Waiting -> s.room
+            is LobbyUiState.Ready   -> s.room
+            else -> null
+        }
+        viewModelScope.launch {
+            currentRoom?.let { room ->
+                if (room.player1.uid == currentUid) {
+                    roomRepo.deleteRoom(room.roomId)
+                }
+            }
+            _state.value = LobbyUiState.Idle
         }
     }
 

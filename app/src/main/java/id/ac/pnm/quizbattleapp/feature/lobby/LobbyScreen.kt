@@ -38,7 +38,7 @@ fun LobbyScreen(
 ) {
     val state          by viewModel.state.collectAsStateWithLifecycle()
     val availableRooms by viewModel.availableRooms.collectAsStateWithLifecycle()
-
+    // val showWaiting = state is LobbyUiState.Waiting || state is LobbyUiState.Ready
     // Navigasi ke game otomatis
     LaunchedEffect(state) {
         if (state is LobbyUiState.NavigateToGame)
@@ -103,7 +103,8 @@ fun LobbyScreen(
                         isReady   = state is LobbyUiState.Ready,
                         isCreator = room.player1.uid == viewModel.currentUid,
                         onStart   = { viewModel.startGame(room.roomId) },
-                        onCancel  = { viewModel.resetState() }
+                        onCancel      = { viewModel.backToList() },       // tombol back biasa
+                        onCancelDelete = { viewModel.cancelAndDeleteRoom() }  // tombol "Batalkan Room"
                     )
                 }
 
@@ -308,7 +309,8 @@ private fun WaitingRoomContent(
     isReady: Boolean,
     isCreator: Boolean,
     onStart: () -> Unit,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
+    onCancelDelete: () -> Unit
 ) {
     val clipboard = LocalClipboardManager.current
 
@@ -417,12 +419,18 @@ private fun WaitingRoomContent(
 
         // Tombol batalkan
         item {
-            TextButton(
-                onClick  = onCancel,
+            OutlinedButton(
+                onClick  = onCancel,        // hanya kembali ke list, room tetap ada
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Batalkan & Kembali ke Daftar Room",
-                    color = MaterialTheme.colorScheme.error)
+                Text("← Kembali ke Daftar Room")
+            }
+
+            TextButton(
+                onClick  = onCancelDelete,  // hapus room sekalian
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Batalkan & Hapus Room", color = MaterialTheme.colorScheme.error)
             }
         }
     }

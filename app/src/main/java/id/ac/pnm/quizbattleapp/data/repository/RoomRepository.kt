@@ -32,15 +32,29 @@ class RoomRepository @Inject constructor(
         error("Gagal membuat room ID unik, coba lagi")
     }
 
+    suspend fun getRoom(roomId: String): GameRoom? {
+        val snapshot = rooms.child(roomId).get().await()
+        return snapshot.getValue(GameRoom::class.java)
+    }
+
     suspend fun createRoom(): Result<GameRoom> = runCatching {
         val user    = auth.currentUser ?: error("User belum login")
-        val roomId  = generateUniqueRoomId() 
+        val roomId  = generateUniqueRoomId()
+
+        // Ambil ID soal dari Firebase, acak, ambil 10
+        val snapshot    = db.getReference("questions").get().await()
+        val selectedIds = snapshot.children
+            .mapNotNull { it.child("id").getValue(Int::class.java) }
+            .shuffled()
+            .take(10)
+
         val player1 = RoomPlayer(uid = user.uid, displayName = user.displayName.orEmpty(), isReady = true)
         val room    = GameRoom(
-            roomId    = roomId,
-            status    = RoomStatus.WAITING,
-            createdAt = System.currentTimeMillis(),
-            player1   = player1
+            roomId      = roomId,
+            status      = RoomStatus.WAITING,
+            createdAt   = System.currentTimeMillis(),
+            player1     = player1,
+            questionIds = selectedIds   // ← urutan soal ditentukan host
         )
         rooms.child(roomId).setValue(room).await()
         room
@@ -54,10 +68,14 @@ class RoomRepository @Inject constructor(
         val snapshot = rooms.child(roomId).get().await()
         val room     = snapshot.getValue(GameRoom::class.java) ?: error("Room tidak ditemukan")
 
+        // Jika yang klik adalah Host sendiri, biarkan dia masuk kembali
+        if (room.player1.uid == user.uid) {
+            return@runCatching room
+        }
+
         when {
             room.isFull                       -> error("Room sudah penuh")
             room.status != RoomStatus.WAITING -> error("Room tidak tersedia")
-            room.player1.uid == user.uid      -> error("Kamu sudah ada di room ini")
         }
 
         val player2 = RoomPlayer(uid = user.uid, displayName = user.displayName.orEmpty(), isReady = true)
@@ -91,12 +109,10 @@ class RoomRepository @Inject constructor(
 
         val listener = query.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val currentUid = auth.currentUser?.uid
                 val list = snapshot.children
                     .mapNotNull { it.getValue(GameRoom::class.java) }
                     .filter { room ->
-                        !room.isFull &&                   // belum penuh
-                        room.player1.uid != currentUid    // bukan room kita sendiri
+                        !room.isFull // Hanya filter room penuh. Filter room sendiri dihapus!
                     }
                     .sortedByDescending { it.createdAt }  // terbaru di atas
                 trySend(list)

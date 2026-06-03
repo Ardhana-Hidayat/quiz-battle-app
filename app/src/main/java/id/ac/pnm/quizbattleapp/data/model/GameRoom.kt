@@ -11,10 +11,11 @@ data class GameRoom(
     val status: String      = RoomStatus.WAITING,
     val createdAt: Long     = 0L,
     val player1: RoomPlayer = RoomPlayer(),
-    val player2: RoomPlayer = RoomPlayer()
+    val player2: RoomPlayer = RoomPlayer(),
+    val questionIds : List<Int> = emptyList()
 ) {
     val isFull: Boolean get() = player2.uid.isNotBlank()
-    val bothReady: Boolean get() = player1.isReady && player2.isReady
+    val bothReady: Boolean get() = isFull
 }
 
 object RoomStatus {
