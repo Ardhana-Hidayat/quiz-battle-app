@@ -38,7 +38,7 @@ class SoloViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = SoloUiState(isLoading = true)
             // Ambil 5 pertanyaan untuk sesi ini
-            val questions = quizRepository.getSoloQuestions(5)
+            val questions = quizRepository.getSoloQuestions(10)
             _uiState.value = SoloUiState(
                 questions = questions,
                 isLoading = false

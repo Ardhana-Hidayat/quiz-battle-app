@@ -7,8 +7,8 @@ import androidx.room.PrimaryKey
 data class Question(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
-    val text: String,
-    val options: List<String>, // Akan diconvert dengan TypeConverter
-    val correctAnswerIndex: Int,
+    val text: String = "",
+    val options: List<String> = emptyList(),
+    val correctAnswerIndex: Int = 0,
     val difficulty: String = "Easy"
 )
