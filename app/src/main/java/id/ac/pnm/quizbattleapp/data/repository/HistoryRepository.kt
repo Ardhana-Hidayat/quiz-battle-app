@@ -25,11 +25,21 @@ class HistoryRepository @Inject constructor(
 
         val listener = ref.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val list = snapshot.children
-                    .mapNotNull { child ->
-                        child.getValue(GameHistory::class.java)?.copy(id = child.key.orEmpty())
-                    }
-                    .sortedByDescending { it.playedAt }
+                val list = snapshot.children.mapNotNull { child ->
+                    try {
+                        GameHistory(
+                            id            = child.key.orEmpty(),
+                            mode          = child.child("mode").getValue(String::class.java) ?: "online",
+                            myScore       = child.child("myScore").getValue(Int::class.java) ?: 0,
+                            opponentScore = child.child("opponentScore").getValue(Int::class.java) ?: 0,
+                            opponentName  = child.child("opponentName").getValue(String::class.java).orEmpty(),
+                            correctAnswers = child.child("correctAnswers").getValue(Int::class.java) ?: 0,
+                            totalQuestions = child.child("totalQuestions").getValue(Int::class.java) ?: 0,
+                            isWinner      = child.child("isWinner").getValue(Boolean::class.java) ?: false,
+                            playedAt      = child.child("playedAt").getValue(Long::class.java) ?: 0L
+                        )
+                    } catch (e: Exception) { null }
+                }.sortedByDescending { it.playedAt }
                 trySend(list)
             }
             override fun onCancelled(error: DatabaseError) { close(Exception(error.message)) }

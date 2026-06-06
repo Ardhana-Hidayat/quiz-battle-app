@@ -4,15 +4,12 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ValueEventListener
 import dagger.hilt.android.lifecycle.HiltViewModel
 import id.ac.pnm.quizbattleapp.data.model.GameResult
 import id.ac.pnm.quizbattleapp.data.model.Question
 import id.ac.pnm.quizbattleapp.data.model.RoomStatus
+import id.ac.pnm.quizbattleapp.data.repository.LeaderboardRepository
 import id.ac.pnm.quizbattleapp.data.repository.QuizRepository
 import id.ac.pnm.quizbattleapp.data.repository.RoomRepository
 import kotlinx.coroutines.flow.*
@@ -38,6 +35,7 @@ data class GameUiState(
 class GameViewModel @Inject constructor(
     private val quizRepository: QuizRepository,
     private val roomRepository: RoomRepository,
+    private val leaderboardRepository: LeaderboardRepository,
     private val auth: FirebaseAuth,
     private val db: FirebaseDatabase,
     savedStateHandle: SavedStateHandle
@@ -50,10 +48,8 @@ class GameViewModel @Inject constructor(
     private val _state = MutableStateFlow(GameUiState())
     val state: StateFlow<GameUiState> = _state.asStateFlow()
 
-    // Referensi Firebase untuk sesi game ini
     private val gameRef    = db.getReference("game_sessions").child(roomId)
     private val myRef      = gameRef.child("scores").child(myUid)
-    private val timerJob   get() = _timerJob
     private var _timerJob: kotlinx.coroutines.Job? = null
 
     init {
@@ -64,60 +60,34 @@ class GameViewModel @Inject constructor(
         viewModelScope.launch {
             _state.value = GameUiState(isLoading = true)
 
-            // Ambil questionIds dari room
-            val roomSnapshot = db.getReference("rooms").child(roomId).get().await()
-            val questionIds  = roomSnapshot.child("questionIds")
-                .children
-                .mapNotNull { it.getValue(Int::class.java) }
-
-            if (questionIds.isEmpty()) {
-                _state.value = GameUiState(isLoading = false, error = "Soal tidak ditemukan.")
-                return@launch
-            }
-
-            // Ambil semua soal dari Firebase dengan mapping manual
-            val allSnapshot  = db.getReference("questions").get().await()
-            val allQuestions = allSnapshot.children.mapNotNull { child ->
-                try {
-                    val id                 = child.child("id").getValue(Int::class.java) ?: return@mapNotNull null
-                    val text               = child.child("text").getValue(String::class.java) ?: return@mapNotNull null
-                    val correctAnswerIndex = child.child("correctAnswerIndex").getValue(Int::class.java) ?: return@mapNotNull null
-                    val difficulty         = child.child("difficulty").getValue(String::class.java) ?: "Easy"
-                    val options            = child.child("options").children
-                        .mapNotNull { it.getValue(String::class.java) }
-
-                    Question(
-                        id                 = id,
-                        text               = text,
-                        options            = options,
-                        correctAnswerIndex = correctAnswerIndex,
-                        difficulty         = difficulty
-                    )
-                } catch (e: Exception) { null }
-            }.associateBy { it.id }
-
-            // Susun soal sesuai urutan questionIds — SAMA untuk kedua player
-            val questions = questionIds.mapNotNull { allQuestions[it] }
-
-            if (questions.isEmpty()) {
-                _state.value = GameUiState(isLoading = false, error = "Gagal memuat soal.")
+            // Mengambil data room, TIDAK PERLU unduh ulang semua pertanyaan karena soal sudah ada di dalam object Room!
+            val room = roomRepository.getRoom(roomId)
+            
+            if (room == null || room.questions.isEmpty()) {
+                _state.value = GameUiState(isLoading = false, error = "Gagal memuat soal dari room.")
                 return@launch
             }
 
             myRef.setValue(0).await()
-            observeOpponentScore()
+            
+            // Tentukan data lawan
+            val opponentUid  = if (myUid == room.player1.uid) room.player2.uid else room.player1.uid
+            val opponentName = if (myUid == room.player1.uid) room.player2.displayName else room.player1.displayName
+            _state.value = _state.value.copy(opponentName = opponentName)
+
+            // Observasi skor dan status
+            observeOpponentScore(opponentUid)
             observeRoomStatus()
 
-            _state.value = GameUiState(
+            _state.value = _state.value.copy(
                 isLoading = false,
-                questions = questions
+                questions = room.questions
             )
 
             startTimer()
         }
     }
 
-    // ── Timer per soal ────────────────────────────────────────────────────
     private fun startTimer() {
         _timerJob?.cancel()
         _timerJob = viewModelScope.launch {
@@ -125,12 +95,10 @@ class GameViewModel @Inject constructor(
                 _state.value = _state.value.copy(timeLeft = t)
                 kotlinx.coroutines.delay(1000)
             }
-
             moveToNext()
         }
     }
 
-    // ── Jawab soal ───────────────────────────────────────────────────────
     fun answerQuestion(selectedIndex: Int) {
         val s = _state.value
         if (s.selectedIndex != null || s.isFinished || s.isLoading) return
@@ -142,10 +110,8 @@ class GameViewModel @Inject constructor(
 
         _state.value = s.copy(selectedIndex = selectedIndex, myScore = newScore)
 
-        // Push skor ke Firebase
         viewModelScope.launch { myRef.setValue(newScore).await() }
 
-        // Jeda 1 detik agar user lihat hasil, lalu lanjut
         viewModelScope.launch {
             kotlinx.coroutines.delay(1000)
             moveToNext()
@@ -161,11 +127,7 @@ class GameViewModel @Inject constructor(
             return
         }
 
-        _state.value = s.copy(
-            currentIndex  = nextIndex,
-            selectedIndex = null,
-            timeLeft      = 15
-        )
+        _state.value = s.copy(currentIndex = nextIndex, selectedIndex = null, timeLeft = 15)
         startTimer()
     }
 
@@ -186,7 +148,6 @@ class GameViewModel @Inject constructor(
         _state.value = s.copy(isFinished = true, result = result)
 
         viewModelScope.launch {
-            // Simpan ke history Firebase
             db.getReference("history").child(myUid).push().setValue(
                 mapOf(
                     "mode"           to result.mode,
@@ -199,39 +160,26 @@ class GameViewModel @Inject constructor(
                     "playedAt"       to System.currentTimeMillis()
                 )
             ).await()
+
+            leaderboardRepository.updateLeaderboard(
+                uid = myUid,
+                name = myName,
+                score = result.score,
+                isWin = result.isWinner,
+                playedAt = System.currentTimeMillis()
+            )
+            
             roomRepository.updateStatus(roomId, RoomStatus.FINISHED)
             gameRef.removeValue().await()
         }
     }
 
-    // Tambah dua property di atas init {}
-    private var opponentScoreListener: ValueEventListener? = null
-    private var opponentScoreRef: DatabaseReference?       = null
-
-    // Ganti fungsi observeOpponentScore():
-    private fun observeOpponentScore() {
+    private fun observeOpponentScore(opponentUid: String) {
         viewModelScope.launch {
-            val roomSnapshot = db.getReference("rooms").child(roomId).get().await()
-            val player1Uid   = roomSnapshot.child("player1").child("uid").getValue(String::class.java).orEmpty()
-            val player2Uid   = roomSnapshot.child("player2").child("uid").getValue(String::class.java).orEmpty()
-            val opponentUid  = if (myUid == player1Uid) player2Uid else player1Uid
-            val opponentName = if (myUid == player1Uid)
-                roomSnapshot.child("player2").child("displayName").getValue(String::class.java).orEmpty()
-            else
-                roomSnapshot.child("player1").child("displayName").getValue(String::class.java).orEmpty()
-
-            _state.value = _state.value.copy(opponentName = opponentName)
-
-            opponentScoreListener = object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val opScore = snapshot.getValue(Int::class.java) ?: 0
-                    _state.value = _state.value.copy(opponentScore = opScore)
-                }
-                override fun onCancelled(error: DatabaseError) {}
+            // Pemantauan lebih aman, tidak akan ada memory leak!
+            roomRepository.observeOpponentScore(roomId, opponentUid).collect { score ->
+                _state.value = _state.value.copy(opponentScore = score)
             }
-
-            opponentScoreRef = gameRef.child("scores").child(opponentUid)
-            opponentScoreRef!!.addValueEventListener(opponentScoreListener!!)
         }
     }
 
@@ -249,6 +197,5 @@ class GameViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         _timerJob?.cancel()
-        opponentScoreListener?.let { opponentScoreRef?.removeEventListener(it) }
     }
 }

@@ -22,39 +22,70 @@ class RoomRepository @Inject constructor(
 ) {
     private val rooms = db.getReference("rooms")
 
-    private suspend fun generateUniqueRoomId(): String {
-    val chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-    repeat(10) { // maksimal 10 kali coba
-        val candidate = "QB-" + (1..4).map { chars.random() }.joinToString("")
-        val snapshot = rooms.child(candidate).get().await()
-        if (!snapshot.exists()) return candidate
+    private fun parseGameRoom(snapshot: DataSnapshot): GameRoom? {
+        return try {
+            val roomId    = snapshot.child("roomId").getValue(String::class.java) ?: return null
+            val status    = snapshot.child("status").getValue(String::class.java) ?: RoomStatus.WAITING
+            val createdAt = snapshot.child("createdAt").getValue(Long::class.java) ?: 0L
+            val player1 = RoomPlayer(
+                uid         = snapshot.child("player1").child("uid").getValue(String::class.java).orEmpty(),
+                displayName = snapshot.child("player1").child("displayName").getValue(String::class.java).orEmpty(),
+                isReady     = snapshot.child("player1").child("isReady").getValue(Boolean::class.java) ?: false
+            )
+            val player2 = RoomPlayer(
+                uid         = snapshot.child("player2").child("uid").getValue(String::class.java).orEmpty(),
+                displayName = snapshot.child("player2").child("displayName").getValue(String::class.java).orEmpty(),
+                isReady     = snapshot.child("player2").child("isReady").getValue(Boolean::class.java) ?: false
+            )
+            
+            // MENGAMBIL LANGSUNG LIST OBJEK SOAL DARI ROOM
+            val questions = snapshot.child("questions").children
+                .mapNotNull { it.getValue(id.ac.pnm.quizbattleapp.data.model.Question::class.java) }
+            GameRoom(
+                roomId      = roomId,
+                status      = status,
+                createdAt   = createdAt,
+                player1     = player1,
+                player2     = player2,
+                questions   = questions // Gunakan questions di sini
+            )
+        } catch (e: Exception) { null }
     }
+
+    // ── Generate unique room ID ───────────────────────────────────────
+    private suspend fun generateUniqueRoomId(): String {
+        val chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+        repeat(10) {
+            val candidate = "QB-" + (1..4).map { chars.random() }.joinToString("")
+            val snapshot  = rooms.child(candidate).get().await()
+            if (!snapshot.exists()) return candidate
+        }
         error("Gagal membuat room ID unik, coba lagi")
     }
 
+    // ── CRUD ──────────────────────────────────────────────────────────
     suspend fun getRoom(roomId: String): GameRoom? {
         val snapshot = rooms.child(roomId).get().await()
-        return snapshot.getValue(GameRoom::class.java)
+        return parseGameRoom(snapshot)
     }
 
     suspend fun createRoom(): Result<GameRoom> = runCatching {
-        val user    = auth.currentUser ?: error("User belum login")
-        val roomId  = generateUniqueRoomId()
-
-        // Ambil ID soal dari Firebase, acak, ambil 10
-        val snapshot    = db.getReference("questions").get().await()
-        val selectedIds = snapshot.children
-            .mapNotNull { it.child("id").getValue(Int::class.java) }
+        val user       = auth.currentUser ?: error("User belum login")
+        val roomId     = generateUniqueRoomId()
+        val snapshot   = db.getReference("questions").get().await()
+        
+        // Ambil objek Question secara utuh
+        val selectedQuestions = snapshot.children
+            .mapNotNull { it.getValue(id.ac.pnm.quizbattleapp.data.model.Question::class.java) }
             .shuffled()
             .take(10)
-
         val player1 = RoomPlayer(uid = user.uid, displayName = user.displayName.orEmpty(), isReady = true)
         val room    = GameRoom(
             roomId      = roomId,
             status      = RoomStatus.WAITING,
             createdAt   = System.currentTimeMillis(),
             player1     = player1,
-            questionIds = selectedIds   // ← urutan soal ditentukan host
+            questions   = selectedQuestions // Simpan soal utuh ke Firebase!
         )
         rooms.child(roomId).setValue(room).await()
         room
@@ -66,12 +97,9 @@ class RoomRepository @Inject constructor(
     suspend fun joinRoom(roomId: String): Result<GameRoom> = runCatching {
         val user     = auth.currentUser ?: error("User belum login")
         val snapshot = rooms.child(roomId).get().await()
-        val room     = snapshot.getValue(GameRoom::class.java) ?: error("Room tidak ditemukan")
+        val room     = parseGameRoom(snapshot) ?: error("Room tidak ditemukan")
 
-        // Jika yang klik adalah Host sendiri, biarkan dia masuk kembali
-        if (room.player1.uid == user.uid) {
-            return@runCatching room
-        }
+        if (room.player1.uid == user.uid) return@runCatching room
 
         when {
             room.isFull                       -> error("Room sudah penuh")
@@ -80,7 +108,6 @@ class RoomRepository @Inject constructor(
 
         val player2 = RoomPlayer(uid = user.uid, displayName = user.displayName.orEmpty(), isReady = true)
         rooms.child(roomId).child("player2").setValue(player2).await()
-
         rooms.child(roomId).child("status").setValue(RoomStatus.READY).await()
 
         room.copy(player2 = player2, status = RoomStatus.READY)
@@ -93,7 +120,7 @@ class RoomRepository @Inject constructor(
         val ref      = rooms.child(roomId)
         val listener = ref.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                trySend(snapshot.getValue(GameRoom::class.java))
+                trySend(parseGameRoom(snapshot))
             }
             override fun onCancelled(error: DatabaseError) {
                 close(Exception(error.message))
@@ -103,18 +130,13 @@ class RoomRepository @Inject constructor(
     }
 
     fun observeAvailableRooms(): Flow<List<GameRoom>> = callbackFlow {
-        val query = rooms
-            .orderByChild("status")
-            .equalTo(RoomStatus.WAITING)
-
+        val query    = rooms.orderByChild("status").equalTo(RoomStatus.WAITING)
         val listener = query.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val list = snapshot.children
-                    .mapNotNull { it.getValue(GameRoom::class.java) }
-                    .filter { room ->
-                        !room.isFull // Hanya filter room penuh. Filter room sendiri dihapus!
-                    }
-                    .sortedByDescending { it.createdAt }  // terbaru di atas
+                    .mapNotNull { parseGameRoom(it) }
+                    .filter { !it.isFull }
+                    .sortedByDescending { it.createdAt }
                 trySend(list)
             }
             override fun onCancelled(error: DatabaseError) {
@@ -122,6 +144,20 @@ class RoomRepository @Inject constructor(
             }
         })
         awaitClose { query.removeEventListener(listener) }
+    }
+
+    fun observeOpponentScore(roomId: String, opponentUid: String): Flow<Int> = callbackFlow {
+        val ref = db.getReference("game_sessions").child(roomId).child("scores").child(opponentUid)
+        val listener = ref.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val score = snapshot.getValue(Int::class.java) ?: 0
+                trySend(score)
+            }
+            override fun onCancelled(error: DatabaseError) {
+                close(Exception(error.message))
+            }
+        })
+        awaitClose { ref.removeEventListener(listener) }
     }
 
     suspend fun deleteRoom(roomId: String) {
