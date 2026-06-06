@@ -39,14 +39,15 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
             HomeScreen(
                 onOnlineBattle = { navController.navigate(Routes.Lobby.route) },
                 onSoloTraining = { navController.navigate(Routes.Solo.route) },
-                onLeaderboard  = { navController.navigate(Routes.Leaderboard.route) },
+                onLeaderboard = { navController.navigate(Routes.Leaderboard.route) },
+                onHistory = { navController.navigate(Routes.History.route) },
                 onLogout = {
                     navController.navigate(Routes.Auth.route) {
                         popUpTo(Routes.Home.route) { inclusive = true }
                     }
                 }
             )
-        }
+        } // <-- KURUNG TUTUP HOME SEHARUSNYA DI SINI
 
         composable(Routes.Solo.route) {
             SoloScreen(
@@ -72,7 +73,7 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
         }
 
         composable(
-            route     = "${Routes.Game.route}/{roomId}",
+            route = "${Routes.Game.route}/{roomId}",
             arguments = listOf(navArgument("roomId") { type = NavType.StringType })
         ) {
             GameScreen(
@@ -93,11 +94,11 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
                 LaunchedEffect(Unit) { navController.navigate(Routes.Home.route) }
             } else {
                 ResultScreen(
-                    result      = result,
+                    result = result,
                     onPlayAgain = {
                         pendingResult = null
                         val destination = if (result.mode == "solo") Routes.Solo.route
-                                          else Routes.Lobby.route
+                        else Routes.Lobby.route
                         navController.navigate(destination) {
                             popUpTo(Routes.Home.route) { inclusive = false }
                         }
@@ -112,12 +113,17 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
             }
         }
 
+        // KEDUA HALAMAN INI SEBELUMNYA LUPA DIDAFTARKAN
         composable(Routes.History.route) {
-            HistoryScreen(onNavigateBack = { navController.popBackStack() })
+            HistoryScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
 
         composable(Routes.Leaderboard.route) {
-            LeaderboardScreen(onNavigateBack = { navController.popBackStack() })
+            LeaderboardScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
     }
 }

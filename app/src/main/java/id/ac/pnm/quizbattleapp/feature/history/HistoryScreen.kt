@@ -76,7 +76,6 @@ fun HistoryScreen(
                     )
                 }
                 
-                // Menampilkan riwayat asli dari database
                 items(historyList) { item ->
                     HistoryCard(item = item)
                 }
@@ -87,12 +86,11 @@ fun HistoryScreen(
 
 @Composable
 fun HistoryCard(item: GameHistory) {
-    val isOnline = item.mode == "online"
+    val isOnline = item.mode == "Battle"
     val isWin = item.isWinner
     
-    // Tampilan Badge: Latihan, Menang, atau Kalah
     val (badgeColor, badgeTextColor, badgeLabel) = when {
-        !isOnline -> Triple(Color(0xFFE3F2FD), Color(0xFF1565C0), "Latihan")
+        isOnline -> Triple(Color(0xFFE3F2FD), Color(0xFF1565C0), "Battle")
         isWin -> Triple(Color(0xFFE2F4E3), Color(0xFF2E7D32), "Menang")
         else -> Triple(Color(0xFFFFEBEE), Color(0xFFC62828), "Kalah")
     }

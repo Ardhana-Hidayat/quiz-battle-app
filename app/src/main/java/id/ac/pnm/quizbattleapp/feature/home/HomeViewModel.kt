@@ -12,7 +12,7 @@ import javax.inject.Inject
 
 data class HomeUiState(
     val user: User?        = null,
-    val gameModes: List<GameMode> = GameMode.values().toList(),
+    val gameModes: List<GameMode> = GameMode.entries.toList(),
     val isLoading: Boolean = false
 )
 

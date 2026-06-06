@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Leaderboard
 import androidx.compose.material.icons.filled.OnlinePrediction
 import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,19 +24,20 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import id.ac.pnm.quizbattleapp.data.model.GameMode
 
+// app/src/main/java/id/ac/pnm/quizbattleapp/feature/home/HomeScreen.kt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onOnlineBattle: () -> Unit,
     onSoloTraining: () -> Unit,
     onLeaderboard: () -> Unit,
+    onHistory: () -> Unit,
     onLogout: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showLogoutDialog by remember { mutableStateOf(false) }
 
-    // Dialog konfirmasi logout
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
@@ -59,11 +61,6 @@ fun HomeScreen(
             TopAppBar(
                 title = { Text("Quiz Battle", fontWeight = FontWeight.Bold) },
                 actions = {
-                    // Leaderboard icon (Sudah diaktifkan kembali)
-                    IconButton(onClick = { onLeaderboard() }) {
-                        Icon(Icons.Default.Leaderboard, contentDescription = "Leaderboard")
-                    }
-                    // Logout icon
                     IconButton(onClick = { showLogoutDialog = true }) {
                         Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout")
                     }
@@ -91,7 +88,6 @@ fun HomeScreen(
             contentPadding = PaddingValues(vertical = 20.dp)
         ) {
 
-            // Profile Card Section
             item {
                 ProfileCard(
                     displayName = uiState.user?.displayName ?: "Pemain",
@@ -99,72 +95,25 @@ fun HomeScreen(
                 )
             }
 
-            // Section Label
             item {
                 Text(
-                    text  = "Pilih Mode Permainan",
+                    text  = "Pilih Mode atau Fitur",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
             }
 
-            // Game Mode Cards List
             items(uiState.gameModes) { mode ->
                 GameModeCard(
-                    mode    = mode,
+                    mode = mode,
                     onClick = {
                         when (mode) {
-                            GameMode.ONLINE_BATTLE  -> onOnlineBattle()
-                            GameMode.SOLO_TRAINING  -> onSoloTraining()
+                            GameMode.ONLINE_BATTLE -> onOnlineBattle()
+                            GameMode.SOLO_TRAINING -> onSoloTraining()
+                            GameMode.LEADERBOARD   -> onLeaderboard()
+                            GameMode.HISTORY       -> onHistory()
                         }
                     }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ProfileCard(displayName: String, email: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape    = RoundedCornerShape(16.dp),
-        colors   = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
-    ) {
-        Row(
-            modifier = Modifier.padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Avatar inisial
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text  = displayName.take(1).uppercase(),
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text  = displayName,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                Text(
-                    text  = email,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                 )
             }
         }
@@ -178,12 +127,17 @@ private fun GameModeCard(mode: GameMode, onClick: () -> Unit) {
                 MaterialTheme.colorScheme.onSecondaryContainer
         GameMode.SOLO_TRAINING -> MaterialTheme.colorScheme.tertiaryContainer to
                 MaterialTheme.colorScheme.onTertiaryContainer
+        GameMode.LEADERBOARD   -> MaterialTheme.colorScheme.primaryContainer to
+                MaterialTheme.colorScheme.onPrimaryContainer
+        GameMode.HISTORY       -> MaterialTheme.colorScheme.inverseSurface to
+                MaterialTheme.colorScheme.inverseOnSurface
     }
 
-    // Pemilihan icon yang sesuai berdasarkan enum GameMode
     val vectorIcon = when (mode) {
         GameMode.ONLINE_BATTLE -> Icons.Default.OnlinePrediction
         GameMode.SOLO_TRAINING -> Icons.Default.Psychology
+        GameMode.LEADERBOARD   -> Icons.Default.Leaderboard
+        GameMode.HISTORY       -> Icons.Default.History
     }
 
     Card(
@@ -200,7 +154,6 @@ private fun GameModeCard(mode: GameMode, onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Icon Vector beralih dari teks ke Icon resmi Material3
             Box(
                 modifier = Modifier
                     .size(52.dp)
@@ -233,11 +186,35 @@ private fun GameModeCard(mode: GameMode, onClick: () -> Unit) {
                 )
             }
 
-            // Mengganti teks panah aneh dengan komponen Icon Arrow asli
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = "Buka Mode",
                 tint = contentColor
+            )
+        }
+    }
+}
+
+@Composable
+fun ProfileCard(displayName: String, email: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(
+                text = "Halo, $displayName!",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = email,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
             )
         }
     }

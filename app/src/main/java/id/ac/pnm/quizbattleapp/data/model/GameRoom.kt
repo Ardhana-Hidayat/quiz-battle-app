@@ -12,7 +12,7 @@ data class GameRoom(
     val createdAt: Long     = 0L,
     val player1: RoomPlayer = RoomPlayer(),
     val player2: RoomPlayer = RoomPlayer(),
-    val questionIds : List<Int> = emptyList()
+    val questions: List<Question> = emptyList()
 ) {
     val isFull: Boolean get() = player2.uid.isNotBlank()
     val bothReady: Boolean get() = isFull

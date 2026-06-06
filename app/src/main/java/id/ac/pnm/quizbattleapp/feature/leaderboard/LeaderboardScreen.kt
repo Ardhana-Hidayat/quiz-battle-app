@@ -10,31 +10,24 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-
-// Simple data model for a leaderboard player
-data class LeaderboardPlayer(
-    val rank: String,
-    val name: String,
-    val score: String
-)
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import id.ac.pnm.quizbattleapp.data.model.LeaderboardEntry
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LeaderboardScreen(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    viewModel: LeaderboardViewModel = hiltViewModel()
 ) {
-    // Beginner-friendly dummy data showing top 3 players
-    val topPlayers = listOf(
-        LeaderboardPlayer("#1", "Rian Hidayat", "2450 pts"),
-        LeaderboardPlayer("#2", "Ardhana Putra", "2200 pts"),
-        LeaderboardPlayer("#3", "Siti Aminah", "1950 pts")
-    )
+    val entries by viewModel.entries.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -54,46 +47,55 @@ fun LeaderboardScreen(
             )
         }
     ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp)
-        ) {
-            // Friendly title consistent with HomeScreen styling
-            item {
-                Text(
-                    text = "Top 3 Pemain Terbaik",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
-                )
+        if (isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(innerPadding),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
             }
-            
-            // List of top 3 players
-            items(topPlayers) { player ->
-                PlayerCard(player = player)
+        } else if (entries.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(innerPadding),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Leaderboard belum tersedia.", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp)
+            ) {
+                item {
+                    Text(
+                        text = "Top Pemain",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+                    )
+                }
+
+                items(entries) { player ->
+                    PlayerCard(player)
+                }
             }
         }
     }
 }
 
 @Composable
-fun PlayerCard(player: LeaderboardPlayer) {
-    // Map rank to corresponding theme colors for visual hierarchy
-    val (containerColor, contentColor) = when (player.rank) {
-        "#1" -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
-        "#2" -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
-        "#3" -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
-        else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
-    }
+fun PlayerCard(player: LeaderboardEntry) {
+    val rankText = "#${player.uid.take(3)}" // bisa diganti sesuai urutan
+    val scoreText = "${player.bestScore} pts"
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = containerColor),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -103,46 +105,45 @@ fun PlayerCard(player: LeaderboardPlayer) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Left: Circle Rank Badge
             Box(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(contentColor.copy(alpha = 0.15f)),
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = player.rank,
+                    text = rankText,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = contentColor
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
-            
-            // Center: Player Name
-            Text(
-                text = player.name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = contentColor,
+
+            Column(
                 modifier = Modifier
                     .weight(1f)
                     .padding(horizontal = 16.dp)
-            )
-            
-            // Right: Score / points
+            ) {
+                Text(
+                    text = player.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Total skor: ${player.totalScore}, Menang: ${player.wins}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            }
+
             Text(
-                text = player.score,
+                text = scoreText,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = contentColor
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun LeaderboardScreenPreview() {
-    LeaderboardScreen(onNavigateBack = {})
 }
