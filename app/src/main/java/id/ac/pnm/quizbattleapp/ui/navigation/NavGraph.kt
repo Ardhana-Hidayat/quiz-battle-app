@@ -90,8 +90,7 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
         composable(Routes.Result.route) {
             val result = pendingResult
             if (result == null) {
-                // Guard: jika dibuka tanpa result, kembali ke home
-                LaunchedEffect(Unit) { navController.navigate(Routes.Home.route) }
+                return@composable
             } else {
                 ResultScreen(
                     result = result,
@@ -100,7 +99,7 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
                         val destination = if (result.mode == "solo") Routes.Solo.route
                         else Routes.Lobby.route
                         navController.navigate(destination) {
-                            popUpTo(Routes.Home.route) { inclusive = false }
+                            popUpTo(Routes.Result.route) { inclusive = true }
                         }
                     },
                     onHome = {
