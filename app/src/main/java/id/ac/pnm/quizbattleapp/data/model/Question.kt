@@ -9,6 +9,5 @@ data class Question(
     val id: Int = 0,
     val text: String = "",
     val options: List<String> = emptyList(),
-    val correctAnswerIndex: Int = 0,
-    val difficulty: String = "Easy"
+    val correctAnswerIndex: Int = 0
 )

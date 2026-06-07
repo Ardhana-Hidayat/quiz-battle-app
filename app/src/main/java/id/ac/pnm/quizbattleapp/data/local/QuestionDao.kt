@@ -11,7 +11,7 @@ interface QuestionDao {
     @Query("SELECT * FROM questions ORDER BY RANDOM() LIMIT :limit")
     suspend fun getRandomQuestions(limit: Int): List<Question>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAll(questions: List<Question>)
     
     @Query("SELECT COUNT(*) FROM questions")

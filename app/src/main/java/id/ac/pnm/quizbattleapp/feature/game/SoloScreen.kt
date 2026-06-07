@@ -27,6 +27,10 @@ fun SoloScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    LaunchedEffect(Unit) {
+        viewModel.restartGame()
+    }
+
     LaunchedEffect(uiState.isFinished, uiState.result) {
         val result = uiState.result
         if (uiState.isFinished && result != null) {
