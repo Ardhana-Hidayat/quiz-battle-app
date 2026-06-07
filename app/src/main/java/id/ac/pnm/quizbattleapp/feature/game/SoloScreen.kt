@@ -17,6 +17,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import id.ac.pnm.quizbattleapp.data.model.GameResult
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.graphics.Color
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,6 +91,10 @@ private fun SoloQuizContent(
     val totalQuestions  = uiState.questions.size
     val currentIndex    = uiState.currentQuestionIndex
 
+    // State lokal untuk feedback warna sebelum lanjut soal berikutnya
+    var selectedIndex by remember(currentIndex) { mutableStateOf<Int?>(null) }
+    val scope = rememberCoroutineScope()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -115,7 +123,6 @@ private fun SoloQuizContent(
                 )
             }
 
-            // Badge skor dengan avatar-style seperti di HomeScreen
             Box(
                 modifier = Modifier
                     .size(52.dp)
@@ -132,21 +139,16 @@ private fun SoloQuizContent(
             }
         }
 
-        // Progress bar
         LinearProgressIndicator(
-            progress  = { (currentIndex + 1).toFloat() / totalQuestions },
-            modifier  = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(4.dp))
+            progress = { (currentIndex + 1).toFloat() / totalQuestions },
+            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp))
         )
 
         // ── Kartu soal ────────────────────────────────────────────────
         Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape    = RoundedCornerShape(16.dp),
-            colors   = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
-            ),
+            modifier  = Modifier.fillMaxWidth(),
+            shape     = RoundedCornerShape(16.dp),
+            colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Text(
@@ -155,56 +157,86 @@ private fun SoloQuizContent(
                 fontWeight = FontWeight.Medium,
                 textAlign  = TextAlign.Center,
                 color      = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier   = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp)
+                modifier   = Modifier.fillMaxWidth().padding(24.dp)
             )
         }
 
-        // ── Pilihan jawaban ───────────────────────────────────────────
         Text(
             text  = "Pilih jawaban:",
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
+        // ── Pilihan jawaban ───────────────────────────────────────────
         currentQuestion.options.forEachIndexed { index, option ->
+            val isSelected  = selectedIndex == index
+            val isCorrect   = index == currentQuestion.correctAnswerIndex
+            val hasAnswered = selectedIndex != null
+
+            val containerColor = when {
+                hasAnswered && isCorrect && isSelected -> Color(0xFF2E7D32)  // hijau tua — benar & dipilih
+                hasAnswered && isCorrect               -> Color(0xFFD8F5E4)  // hijau soft — jawaban benar
+                hasAnswered && isSelected              -> Color(0xFFC62828)  // merah tua — salah dipilih
+                else                                  -> MaterialTheme.colorScheme.surfaceVariant
+            }
+
+            val badgeBackground = when {
+                hasAnswered && isCorrect -> Color(0xFF2E7D32)
+                hasAnswered && isSelected -> Color(0xFFC62828)
+                else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+            }
+
+            val badgeTextColor = when {
+                hasAnswered && (isCorrect || isSelected) -> Color.White
+                else -> MaterialTheme.colorScheme.primary
+            }
+
+            val textColor = when {
+                hasAnswered && isCorrect && isSelected -> Color.White
+                hasAnswered && isCorrect               -> Color(0xFF1B7A45)
+                hasAnswered && isSelected              -> Color.White
+                else                                  -> MaterialTheme.colorScheme.onSurfaceVariant
+            }
+
             Card(
-                onClick   = { onAnswer(index) },
+                onClick  = {
+                    if (!hasAnswered) {
+                        selectedIndex = index
+                        scope.launch {
+                            delay(800)       // jeda 0.8 detik untuk lihat feedback
+                            onAnswer(index)  // baru kirim ke ViewModel
+                        }
+                    }
+                },
                 modifier  = Modifier.fillMaxWidth(),
                 shape     = RoundedCornerShape(16.dp),
-                colors    = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                ),
+                colors    = CardDefaults.cardColors(containerColor = containerColor),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    modifier              = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
                     verticalAlignment     = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    // Badge huruf opsi (A, B, C, D)
                     Box(
-                        modifier = Modifier
+                        modifier         = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                            .background(badgeBackground),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text       = ('A' + index).toString(),
                             style      = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
-                            color      = MaterialTheme.colorScheme.primary
+                            color      = badgeTextColor
                         )
                     }
 
                     Text(
                         text  = option,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = textColor
                     )
                 }
             }

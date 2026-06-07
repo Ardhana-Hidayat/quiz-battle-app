@@ -38,7 +38,7 @@ fun AuthScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = if (isLogin) "Selamat Datang Ã°Å¸â€˜â€¹" else "Buat Akun",
+            text = if (isLogin) "Selamat Datang!" else "Buat Akun",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
@@ -46,13 +46,15 @@ fun AuthScreen(
         Spacer(Modifier.height(24.dp))
 
         AnimatedVisibility(!isLogin) {
-            OutlinedTextField(
-                value = name, onValueChange = { name = it },
-                label = { Text("Nama") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(Modifier.height(12.dp))
+            Column {
+                OutlinedTextField(
+                    value = name, onValueChange = { name = it },
+                    label = { Text("Nama") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(12.dp))
+            }
         }
 
         OutlinedTextField(

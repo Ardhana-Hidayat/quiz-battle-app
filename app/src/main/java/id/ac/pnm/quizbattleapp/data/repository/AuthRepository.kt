@@ -29,22 +29,20 @@ class AuthRepository @Inject constructor(
         awaitClose { auth.removeAuthStateListener(listener) }
     }
 
-    suspend fun login(email: String, password: String): Result<User> = runCatching {
+    suspend fun login(email: String, password: String): Result<User> = try {
         val u = auth.signInWithEmailAndPassword(email, password).await().user!!
-        User(uid = u.uid, email = u.email.orEmpty(), displayName = u.displayName.orEmpty())
-    }.fold(
-        onSuccess = { Result.success(it) },
-        onFailure = { Result.failure(Exception(it.toMessage())) }
-    )
+        Result.success(User(uid = u.uid, email = u.email.orEmpty(), displayName = u.displayName.orEmpty()))
+    } catch (e: Exception) {
+        Result.failure(Exception(e.toMessage()))
+    }
 
-    suspend fun register(email: String, password: String, name: String): Result<User> = runCatching {
+    suspend fun register(email: String, password: String, name: String): Result<User> = try {
         val u = auth.createUserWithEmailAndPassword(email, password).await().user!!
         u.updateProfile(UserProfileChangeRequest.Builder().setDisplayName(name).build()).await()
-        User(uid = u.uid, email = u.email.orEmpty(), displayName = name)
-    }.fold(
-        onSuccess = { Result.success(it) },
-        onFailure = { Result.failure(Exception(it.toMessage())) }
-    )
+        Result.success(User(uid = u.uid, email = u.email.orEmpty(), displayName = name))
+    } catch (e: Exception) {
+        Result.failure(Exception(e.toMessage()))
+    }
 
     fun logout() = auth.signOut()
 

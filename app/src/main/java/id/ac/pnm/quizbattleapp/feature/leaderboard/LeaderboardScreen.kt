@@ -3,7 +3,6 @@ package id.ac.pnm.quizbattleapp.feature.leaderboard
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -19,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import id.ac.pnm.quizbattleapp.data.model.LeaderboardEntry
+import androidx.compose.foundation.lazy.itemsIndexed
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,24 +63,24 @@ fun LeaderboardScreen(
             }
         } else {
             LazyColumn(
-                modifier = Modifier
+                modifier            = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
                     .padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp)
+                contentPadding      = PaddingValues(top = 16.dp, bottom = 24.dp)
             ) {
                 item {
                     Text(
-                        text = "Top Pemain",
-                        style = MaterialTheme.typography.titleMedium,
+                        text       = "Top Pemain",
+                        style      = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+                        color      = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
                     )
                 }
 
-                items(entries) { player ->
-                    PlayerCard(player)
+                itemsIndexed(entries) { index, player ->
+                    PlayerCard(rank = index + 1, player = player)
                 }
             }
         }
@@ -88,8 +88,13 @@ fun LeaderboardScreen(
 }
 
 @Composable
-fun PlayerCard(player: LeaderboardEntry) {
-    val rankText = "#${player.uid.take(3)}" // bisa diganti sesuai urutan
+fun PlayerCard(rank: Int, player: LeaderboardEntry) {
+    val rankText = when (rank) {
+        1    -> "🥇"
+        2    -> "🥈"
+        3    -> "🥉"
+        else -> "#$rank"
+    }
     val scoreText = "${player.bestScore} pts"
 
     Card(

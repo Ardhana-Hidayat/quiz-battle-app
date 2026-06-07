@@ -156,16 +156,25 @@ private fun GameContent(
             val isCorrect   = index == currentQuestion.correctAnswerIndex
             val hasAnswered = state.selectedIndex != null
 
+            // Warna soft custom
             val containerColor = when {
-                hasAnswered && isCorrect  -> Color(0xFF4CAF50)
-                hasAnswered && isSelected -> MaterialTheme.colorScheme.error
-                else                     -> MaterialTheme.colorScheme.surface
+                hasAnswered && isCorrect && isSelected  -> Color(0xFF2E7D32)  // Hijau tua — benar & dipilih
+                hasAnswered && isCorrect                -> Color(0xFFD8F5E4)  // Hijau soft — jawaban benar
+                hasAnswered && isSelected               -> Color(0xFFC62828)  // Merah tua — salah dipilih
+                else                                    -> MaterialTheme.colorScheme.surface
             }
 
             val borderColor = when {
-                hasAnswered && isCorrect  -> Color(0xFF4CAF50)
-                hasAnswered && isSelected -> MaterialTheme.colorScheme.error
+                hasAnswered && isCorrect  -> Color(0xFF2E7D32)  // Hijau
+                hasAnswered && isSelected -> Color(0xFFC62828)  // Merah
                 else                     -> MaterialTheme.colorScheme.outline
+            }
+
+            val textColor = when {
+                hasAnswered && isCorrect && isSelected -> Color.White   // teks putih — hijau tua
+                hasAnswered && isCorrect               -> Color(0xFF1B7A45)  // teks hijau gelap
+                hasAnswered && isSelected              -> Color.White   // teks putih — merah tua
+                else                                  -> MaterialTheme.colorScheme.onSurface
             }
 
             OutlinedButton(
@@ -174,11 +183,7 @@ private fun GameContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 6.dp)
-                    .border(
-                        width = 2.dp,
-                        color = borderColor,
-                        shape = RoundedCornerShape(12.dp)
-                    ),
+                    .border(2.dp, borderColor, RoundedCornerShape(12.dp)),
                 shape  = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.outlinedButtonColors(
                     containerColor         = containerColor,
@@ -186,14 +191,13 @@ private fun GameContent(
                 )
             ) {
                 Text(
-                    text   = option,
-                    color  = if (hasAnswered && (isCorrect || isSelected)) Color.White
-                             else MaterialTheme.colorScheme.onSurface,
+                    text     = option,
+                    color    = textColor,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
         }
-    }
+    }   
 }
 
 @Composable

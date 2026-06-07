@@ -21,6 +21,7 @@ import id.ac.pnm.quizbattleapp.data.model.GameHistory
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.runtime.remember
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,50 +87,41 @@ fun HistoryScreen(
 
 @Composable
 fun HistoryCard(item: GameHistory) {
-    val isOnline = item.mode == "Battle"
-    val isWin = item.isWinner
-    
     val (badgeColor, badgeTextColor, badgeLabel) = when {
-        isOnline -> Triple(Color(0xFFE3F2FD), Color(0xFF1565C0), "Battle")
-        isWin -> Triple(Color(0xFFE2F4E3), Color(0xFF2E7D32), "Menang")
-        else -> Triple(Color(0xFFFFEBEE), Color(0xFFC62828), "Kalah")
+        item.isWinner                              -> Triple(Color(0xFFE2F4E3), Color(0xFF2E7D32), "Menang")
+        item.myScore == item.opponentScore         -> Triple(Color(0xFFFFF8E1), Color(0xFFF57F17), "Seri")
+        else                                       -> Triple(Color(0xFFFFEBEE), Color(0xFFC62828), "Kalah")
     }
 
-    // Nama lawan dan Skor
-    val opponentText = if (isOnline && item.opponentName.isNotBlank()) item.opponentName else "Mode Solo"
-    val scoreText = if (isOnline) "${item.myScore} - ${item.opponentScore}" else "${item.myScore}"
-    
-    // Konversi milidetik ke Tanggal yang cantik
-    val sdf = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale("id", "ID"))
-    val dateText = sdf.format(Date(item.playedAt))
+    val opponentText = if (item.opponentName.isNotBlank()) item.opponentName else "Lawan"
+    val scoreText    = "${item.myScore} - ${item.opponentScore}"
+    val dateText     = remember(item.playedAt) {
+        SimpleDateFormat("dd MMM yyyy, HH:mm", Locale("id", "ID")).format(Date(item.playedAt))
+    }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
+        modifier  = Modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            modifier              = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment     = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(
-                modifier = Modifier.weight(1f),
+                modifier            = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = if (isOnline) "Lawan: $opponentText" else opponentText,
-                    style = MaterialTheme.typography.titleMedium,
+                    text       = "vs $opponentText",
+                    style      = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color      = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = dateText,
+                    text  = "${item.correctAnswers}/${item.totalQuestions} benar · $dateText",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
@@ -140,10 +132,10 @@ fun HistoryCard(item: GameHistory) {
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
-                    text = scoreText,
-                    style = MaterialTheme.typography.titleMedium,
+                    text       = scoreText,
+                    style      = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color      = MaterialTheme.colorScheme.onSurface
                 )
                 Box(
                     modifier = Modifier
@@ -152,10 +144,10 @@ fun HistoryCard(item: GameHistory) {
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = badgeLabel,
-                        style = MaterialTheme.typography.labelMedium,
+                        text       = badgeLabel,
+                        style      = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
-                        color = badgeTextColor
+                        color      = badgeTextColor
                     )
                 }
             }

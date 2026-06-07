@@ -23,8 +23,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import id.ac.pnm.quizbattleapp.data.model.GameMode
+import androidx.compose.ui.graphics.Color
 
-// app/src/main/java/id/ac/pnm/quizbattleapp/feature/home/HomeScreen.kt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -37,6 +37,7 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showLogoutDialog by remember { mutableStateOf(false) }
+    val gameModes = GameMode.entries.toList()
 
     if (showLogoutDialog) {
         AlertDialog(
@@ -103,7 +104,7 @@ fun HomeScreen(
                 )
             }
 
-            items(uiState.gameModes) { mode ->
+            items(gameModes) { mode ->
                 GameModeCard(
                     mode = mode,
                     onClick = {
@@ -123,14 +124,10 @@ fun HomeScreen(
 @Composable
 private fun GameModeCard(mode: GameMode, onClick: () -> Unit) {
     val (containerColor, contentColor) = when (mode) {
-        GameMode.ONLINE_BATTLE -> MaterialTheme.colorScheme.secondaryContainer to
-                MaterialTheme.colorScheme.onSecondaryContainer
-        GameMode.SOLO_TRAINING -> MaterialTheme.colorScheme.tertiaryContainer to
-                MaterialTheme.colorScheme.onTertiaryContainer
-        GameMode.LEADERBOARD   -> MaterialTheme.colorScheme.primaryContainer to
-                MaterialTheme.colorScheme.onPrimaryContainer
-        GameMode.HISTORY       -> MaterialTheme.colorScheme.inverseSurface to
-                MaterialTheme.colorScheme.inverseOnSurface
+        GameMode.ONLINE_BATTLE -> Color(0xFFD6EAFF) to Color(0xFF1A5FA8)
+        GameMode.SOLO_TRAINING -> Color(0xFFD8F5E4) to Color(0xFF1B7A45) 
+        GameMode.LEADERBOARD   -> Color(0xFFFFF3CC) to Color(0xFF8A6200)  
+        GameMode.HISTORY       -> Color(0xFFECDFFF) to Color(0xFF5B2D9E)  
     }
 
     val vectorIcon = when (mode) {
@@ -197,25 +194,54 @@ private fun GameModeCard(mode: GameMode, onClick: () -> Unit) {
 
 @Composable
 fun ProfileCard(displayName: String, email: String) {
+
+    val initials = displayName
+        .trim()
+        .split(" ")
+        .filter { it.isNotBlank() }
+        .take(2)
+        .joinToString("") { it.first().uppercaseChar().toString() }
+        .ifBlank { "?" }
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        modifier  = Modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(containerColor = Color(0xFFD6EAFF)),  // biru soft senada
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Text(
-                text = "Halo, $displayName!",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = email,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-            )
+        Row(
+            modifier          = Modifier.fillMaxWidth().padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF1A5FA8)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text       = initials,
+                    style      = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color      = Color.White
+                )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text       = "Halo, $displayName!",
+                    style      = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color      = Color(0xFF1A5FA8)
+                )
+                Text(
+                    text  = email,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF1A5FA8).copy(alpha = 0.7f)
+                )
+            }
         }
     }
 }

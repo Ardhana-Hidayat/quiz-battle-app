@@ -73,6 +73,15 @@ class LobbyViewModel @Inject constructor(
         }
     }
 
+    fun joinRoomByCode(code: String) {
+        val formatted = code.trim().uppercase()
+        if (formatted.length != 7) {  
+            _state.value = LobbyUiState.Error("Kode room tidak valid.")
+            return
+        }
+        joinRoom(formatted)
+    }
+
     // ── Observe perubahan room secara real-time ───────────────────────────
     private fun listenToRoom(roomId: String) {
         listenJob?.cancel() // pastikan tidak ada listener ganda
