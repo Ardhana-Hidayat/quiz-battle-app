@@ -95,7 +95,6 @@ fun PlayerCard(rank: Int, player: LeaderboardEntry) {
         3    -> "🥉"
         else -> "#$rank"
     }
-    val scoreText = "${player.bestScore} pts"
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -136,15 +135,18 @@ fun PlayerCard(rank: Int, player: LeaderboardEntry) {
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
+
+                // 1. Skor terbaik dihapus, sekarang hanya menampilkan jumlah menang saja
                 Text(
-                    text = "Total skor: ${player.totalScore}, Menang: ${player.wins}",
+                    text = "Menang: ${player.wins}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
             }
 
+            // 2. Di bagian kanan sekarang menampilkan teks "Total Score : " dan nilainya
             Text(
-                text = scoreText,
+                text = "Total Score : ${player.totalScore}",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
