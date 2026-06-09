@@ -37,11 +37,10 @@ class LobbyViewModel @Inject constructor(
 
     val currentUid: String get() = auth.currentUser?.uid.orEmpty()
 
-    // Job listener disimpan agar bisa dibatalkan kapanpun
     private var listenJob: Job? = null
     private var deleteJob: Job? = null
 
-    // ── Buat room baru ────────────────────────────────────────────────────
+    // buat room/lobby
     fun createRoom() {
         viewModelScope.launch {
             _state.value = LobbyUiState.Loading
@@ -57,7 +56,6 @@ class LobbyViewModel @Inject constructor(
         }
     }
 
-    // ── Join room dari list ───────────────────────────────────────────────
     fun joinRoom(roomId: String) {
         viewModelScope.launch {
             _state.value = LobbyUiState.Loading
@@ -82,9 +80,9 @@ class LobbyViewModel @Inject constructor(
         joinRoom(formatted)
     }
 
-    // ── Observe perubahan room secara real-time ───────────────────────────
+    // pantau perubahan room
     private fun listenToRoom(roomId: String) {
-        listenJob?.cancel() // pastikan tidak ada listener ganda
+        listenJob?.cancel()
         listenJob = viewModelScope.launch {
             roomRepo.observeRoom(roomId).collect { room ->
                 if (room == null) {
@@ -100,13 +98,12 @@ class LobbyViewModel @Inject constructor(
         }
     }
 
-    // ── Kembali ke list tanpa hapus room ─────────────────────────────────
     fun backToList() {
         listenJob?.cancel()
         _state.value = LobbyUiState.Idle
     }
 
-    // ── Batalkan dan hapus room dari Firebase ────────────────────────────
+    // batalkan dan hapus room dari Firebase
     fun cancelAndDeleteRoom() {
         val currentRoom = when (val s = _state.value) {
             is LobbyUiState.Waiting -> s.room
@@ -115,15 +112,14 @@ class LobbyViewModel @Inject constructor(
         }
         
         listenJob?.cancel()
-        
-        // Batalkan timer hapus yang lama jika ada (agar timer tidak numpuk/ganda)
+
         deleteJob?.cancel() 
         
         _state.value = LobbyUiState.Idle
         
         currentRoom?.let { room ->
             if (room.player1.uid == currentUid) {
-                // Simpan coroutine timer ini ke deleteJob
+
                 deleteJob = viewModelScope.launch {
                     kotlinx.coroutines.delay(60_000) 
                     
@@ -136,7 +132,7 @@ class LobbyViewModel @Inject constructor(
         }
     }
 
-    // ── Host mulai game ───────────────────────────────────────────────────
+    // host mulai game
     fun startGame(roomId: String) {
         viewModelScope.launch { roomRepo.updateStatus(roomId, RoomStatus.PLAYING) }
     }

@@ -91,7 +91,6 @@ private fun SoloQuizContent(
     val totalQuestions  = uiState.questions.size
     val currentIndex    = uiState.currentQuestionIndex
 
-    // State lokal untuk feedback warna sebelum lanjut soal berikutnya
     var selectedIndex by remember(currentIndex) { mutableStateOf<Int?>(null) }
     val scope = rememberCoroutineScope()
 

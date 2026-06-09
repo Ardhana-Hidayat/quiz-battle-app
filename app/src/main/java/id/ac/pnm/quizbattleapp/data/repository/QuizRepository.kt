@@ -10,7 +10,7 @@ class QuizRepository @Inject constructor(
     private val questionDao: QuestionDao
 ) {
     suspend fun getSoloQuestions(limit: Int = 10): List<Question> {
-        // Cek jika kosong, isi dummy data
+        // jika kosong, isi dummy data
         if (questionDao.getQuestionCount() == 0) {
             populateDummyData()
         }

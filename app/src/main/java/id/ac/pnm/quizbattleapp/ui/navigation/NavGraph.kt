@@ -21,8 +21,6 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
     val isLoggedIn by authViewModel.isLoggedIn.collectAsStateWithLifecycle()
     val startDestination = if (isLoggedIn) Routes.Home.route else Routes.Auth.route
 
-    // State sementara untuk pass GameResult ke ResultScreen
-    // (Jetpack Navigation belum support passing object kompleks langsung)
     var pendingResult by remember { mutableStateOf<GameResult?>(null) }
 
     NavHost(navController = navController, startDestination = startDestination) {
@@ -47,7 +45,7 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
                     }
                 }
             )
-        } // <-- KURUNG TUTUP HOME SEHARUSNYA DI SINI
+        }
 
         composable(Routes.Solo.route) {
             SoloScreen(
@@ -77,7 +75,6 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
             arguments = listOf(navArgument("roomId") { type = NavType.StringType })
         ) {
             GameScreen(
-                roomId = it.arguments?.getString("roomId") ?: "",
                 onGameFinished = { result ->
                     pendingResult = result
                     navController.navigate(Routes.Result.route) {
@@ -112,7 +109,6 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
             }
         }
 
-        // KEDUA HALAMAN INI SEBELUMNYA LUPA DIDAFTARKAN
         composable(Routes.History.route) {
             HistoryScreen(
                 onNavigateBack = { navController.popBackStack() }

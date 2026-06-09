@@ -21,13 +21,12 @@ import id.ac.pnm.quizbattleapp.data.model.GameResult
 
 @Composable
 fun GameScreen(
-    roomId: String,
     onGameFinished: (GameResult) -> Unit,
     viewModel: GameViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    // Navigasi ke result saat selesai
+    // navigasi ke result saat selesai
     LaunchedEffect(state.isFinished, state.result) {
         if (state.isFinished && state.result != null) {
             onGameFinished(state.result!!)
@@ -74,7 +73,6 @@ private fun GameContent(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        // ── Scoreboard ────────────────────────────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -91,7 +89,6 @@ private fun GameContent(
 
         Spacer(Modifier.height(16.dp))
 
-        // ── Progress & Timer ──────────────────────────────────────────
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -102,7 +99,6 @@ private fun GameContent(
                 style = MaterialTheme.typography.labelLarge
             )
 
-            // Timer — merah kalau ≤ 5 detik
             val timerColor = if (state.timeLeft <= 5)
                 MaterialTheme.colorScheme.error
             else
@@ -134,7 +130,6 @@ private fun GameContent(
 
         Spacer(Modifier.height(24.dp))
 
-        // ── Pertanyaan ────────────────────────────────────────────────
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape    = RoundedCornerShape(16.dp)
@@ -150,30 +145,29 @@ private fun GameContent(
 
         Spacer(Modifier.height(24.dp))
 
-        // ── Pilihan Jawaban ───────────────────────────────────────────
+        // pilihan jawaban
         currentQuestion.options.forEachIndexed { index, option ->
             val isSelected  = state.selectedIndex == index
             val isCorrect   = index == currentQuestion.correctAnswerIndex
             val hasAnswered = state.selectedIndex != null
 
-            // Warna soft custom
             val containerColor = when {
-                hasAnswered && isCorrect && isSelected  -> Color(0xFF2E7D32)  // Hijau tua — benar & dipilih
-                hasAnswered && isCorrect                -> Color(0xFFD8F5E4)  // Hijau soft — jawaban benar
-                hasAnswered && isSelected               -> Color(0xFFC62828)  // Merah tua — salah dipilih
+                hasAnswered && isCorrect && isSelected  -> Color(0xFF2E7D32)
+                hasAnswered && isCorrect                -> Color(0xFFD8F5E4)
+                hasAnswered && isSelected               -> Color(0xFFC62828)
                 else                                    -> MaterialTheme.colorScheme.surface
             }
 
             val borderColor = when {
-                hasAnswered && isCorrect  -> Color(0xFF2E7D32)  // Hijau
-                hasAnswered && isSelected -> Color(0xFFC62828)  // Merah
+                hasAnswered && isCorrect  -> Color(0xFF2E7D32)
+                hasAnswered && isSelected -> Color(0xFFC62828)
                 else                     -> MaterialTheme.colorScheme.outline
             }
 
             val textColor = when {
-                hasAnswered && isCorrect && isSelected -> Color.White   // teks putih — hijau tua
-                hasAnswered && isCorrect               -> Color(0xFF1B7A45)  // teks hijau gelap
-                hasAnswered && isSelected              -> Color.White   // teks putih — merah tua
+                hasAnswered && isCorrect && isSelected -> Color.White
+                hasAnswered && isCorrect               -> Color(0xFF1B7A45)
+                hasAnswered && isSelected              -> Color.White
                 else                                  -> MaterialTheme.colorScheme.onSurface
             }
 

@@ -14,11 +14,12 @@ import javax.inject.Singleton
 class AuthRepository @Inject constructor(
     private val auth: FirebaseAuth
 ) {
-    // Sesi aktif dari Firebase (persisten, tidak perlu DataStore)
+    // sesi aktif user
     val currentUser: User? get() = auth.currentUser?.let {
         User(uid = it.uid, email = it.email.orEmpty(), displayName = it.displayName.orEmpty())
     }
 
+    // memantau status login user
     fun observeAuthState(): Flow<User?> = callbackFlow {
         val listener = FirebaseAuth.AuthStateListener {
             trySend(it.currentUser?.let { u ->

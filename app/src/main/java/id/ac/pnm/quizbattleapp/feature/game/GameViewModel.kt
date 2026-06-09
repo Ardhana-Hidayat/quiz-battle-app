@@ -60,7 +60,7 @@ class GameViewModel @Inject constructor(
         viewModelScope.launch {
             _state.value = GameUiState(isLoading = true)
 
-            // Mengambil data room, TIDAK PERLU unduh ulang semua pertanyaan karena soal sudah ada di dalam object Room!
+            // mengambil data room
             val room = roomRepository.getRoom(roomId)
             
             if (room == null || room.questions.isEmpty()) {
@@ -69,13 +69,12 @@ class GameViewModel @Inject constructor(
             }
 
             myRef.setValue(0).await()
-            
-            // Tentukan data lawan
+
             val opponentUid  = if (myUid == room.player1.uid) room.player2.uid else room.player1.uid
             val opponentName = if (myUid == room.player1.uid) room.player2.displayName else room.player1.displayName
             _state.value = _state.value.copy(opponentName = opponentName)
 
-            // Observasi skor dan status
+            // observasi skor dan status secara real-time
             observeOpponentScore(opponentUid)
             observeRoomStatus()
 
@@ -176,7 +175,7 @@ class GameViewModel @Inject constructor(
 
     private fun observeOpponentScore(opponentUid: String) {
         viewModelScope.launch {
-            // Pemantauan lebih aman, tidak akan ada memory leak!
+
             roomRepository.observeOpponentScore(roomId, opponentUid).collect { score ->
                 _state.value = _state.value.copy(opponentScore = score)
             }
